@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { Command, ExtendedClient } from '../../types';
+import { Command, ExtendedClient } from '../types';
 
 export const info: Command = {
   data: new SlashCommandBuilder()
