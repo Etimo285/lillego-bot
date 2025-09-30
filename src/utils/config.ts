@@ -8,12 +8,13 @@ export const botConfig: Config = {
   token: process.env.DISCORD_TOKEN || '',
   clientId: process.env.CLIENT_ID || '',
   guildId: process.env.GUILD_ID || '',
+  devGuildId: process.env.DEV_GUILD_ID || '',
   prefix: process.env.PREFIX || '!'
 };
 
 // Validate required environment variables
 export function validateConfig(): void {
-  const requiredVars = ['DISCORD_TOKEN', 'CLIENT_ID'];
+  const requiredVars = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {

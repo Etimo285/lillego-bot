@@ -6,7 +6,9 @@ export async function loadEvents(client: ExtendedClient): Promise<void> {
   const eventsPath = join(__dirname, '../events');
   
   try {
-    const eventFiles = readdirSync(eventsPath).filter(file => file.endsWith('.ts'));
+    const eventFiles = readdirSync(eventsPath).filter(file => 
+      file.endsWith('.js') && !file.endsWith('.d.ts')
+    );
     
     for (const file of eventFiles) {
       const filePath = join(eventsPath, file);

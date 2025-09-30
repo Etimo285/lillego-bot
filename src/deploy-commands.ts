@@ -12,20 +12,20 @@ async function deployCommands(): Promise<void> {
     const commandsPath = join(__dirname, 'commands');
     
     // Load all commands
-    const commandFolders = readdirSync(commandsPath);
+    const commandFiles = readdirSync(commandsPath).filter(file => 
+      file.endsWith('.js') && !file.endsWith('.d.ts')
+    );
     
-    for (const folder of commandFolders) {
-      const commandPath = join(commandsPath, folder);
-      const commandFiles = readdirSync(commandPath).filter(file => file.endsWith('.ts'));
+    for (const file of commandFiles) {
+      const filePath = join(commandsPath, file);
+      const commandModule = await import(filePath);
       
-      for (const file of commandFiles) {
-        const filePath = join(commandPath, file);
-        const command: Command = await import(filePath);
-        
-        if ('data' in command && 'execute' in command) {
-          commands.push(command.data.toJSON());
-          console.log(`✅ Loaded command: ${command.data.name}`);
-        }
+      // Get the command from the module (handle both default and named exports)
+      const command: Command = commandModule.default || commandModule[Object.keys(commandModule)[0]];
+      
+      if (command && 'data' in command && 'execute' in command) {
+        commands.push(command.data.toJSON());
+        console.log(`✅ Loaded command: ${command.data.name}`);
       }
     }
     
@@ -40,6 +40,12 @@ async function deployCommands(): Promise<void> {
         Routes.applicationGuildCommands(botConfig.clientId, botConfig.guildId),
         { body: commands }
       ) as any[];
+
+      // Deploy to dev guild
+      await rest.put(
+        Routes.applicationGuildCommands(botConfig.clientId, botConfig.devGuildId),
+        { body: commands }
+      );
       
       console.log(`✅ Successfully reloaded ${data.length} guild application (/) commands.`);
     } else {

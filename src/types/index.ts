@@ -23,5 +23,6 @@ export interface Config {
   token: string;
   clientId: string;
   guildId: string;
+  devGuildId: string;
   prefix: string;
 }
