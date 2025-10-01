@@ -23,13 +23,23 @@ export const jeudi: Command = {
       const dayOfWeek = now.getDay();
       
       // Thursday is day 4 (0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, etc.)
-      const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
-      if (daysUntilThursday === 0 && now.getHours() >= 23) {
-        // If it's Thursday but late in the day, get next Thursday
-        nextThursday.setDate(now.getDate() + 7);
+      let daysUntilThursday;
+      if (dayOfWeek === 4) {
+        // If it's Thursday, check if it's late in the day
+        if (now.getHours() >= 23) {
+          daysUntilThursday = 7; // Next Thursday
+        } else {
+          daysUntilThursday = 0; // Today
+        }
+      } else if (dayOfWeek < 4) {
+        // If it's Sunday (0) to Wednesday (3), Thursday is this week
+        daysUntilThursday = 4 - dayOfWeek;
       } else {
-        nextThursday.setDate(now.getDate() + daysUntilThursday);
+        // If it's Friday (5) or Saturday (6), Thursday is next week
+        daysUntilThursday = 7 - dayOfWeek + 4;
       }
+      
+      nextThursday.setDate(now.getDate() + daysUntilThursday);
       
       // Set time range for the entire day
       const timeMin = `${nextThursday.toISOString().split('T')[0]}T00:00:00.000Z`;
@@ -99,11 +109,10 @@ export const jeudi: Command = {
 
       if (events.length === 0) {
         const embed = new EmbedBuilder()
-          .setTitle(`📅 Jeudi ${displayDate} - Aucun événement`)
-          .setDescription('Aucun événement prévu pour ce jeudi.')
-          .setColor(0xFFA500)
-          .setTimestamp()
-          .setFooter({ text: 'Google Calendar API' });
+          .setTitle(`😴 Jeudi ${displayDate}`)
+          .setDescription('Rien de prévu aujourd\'hui ! 🌟')
+          .setColor(0x95A5A6)
+          .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
         return;
@@ -111,10 +120,10 @@ export const jeudi: Command = {
 
       // Create embed with events
       const embed = new EmbedBuilder()
-        .setTitle(`📅 Jeudi ${displayDate} - ${events.length} événement${events.length > 1 ? 's' : ''}`)
-        .setColor(0x4285F4)
-        .setTimestamp()
-        .setFooter({ text: 'Google Calendar API' });
+        .setTitle(`✨ Jeudi ${displayDate}`)
+        .setDescription(`Voici ce qui vous attend aujourd'hui !`)
+        .setColor(0x3498DB)
+        .setTimestamp();
 
       // Add events to embed
       events.forEach((event, index) => {
@@ -125,24 +134,38 @@ export const jeudi: Command = {
           const startDate = new Date(start);
           if (event.start?.dateTime) {
             // Event with time
-            timeInfo = `🕐 **${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}**`;
+            timeInfo = `🕐 ${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
           } else {
             // All-day event
-            timeInfo = `📅 **Toute la journée**`;
+            timeInfo = `📅 Toute la journée`;
           }
         }
 
-        const location = event.location ? `📍 ${event.location}` : '';
-        const description = event.description ? 
-          event.description.substring(0, 100) + (event.description.length > 100 ? '...' : '') : '';
+        let location = '';
+        if (event.location) {
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
+          location = `📍 ${event.location} \n [🗺️ Itinéraire](${mapsUrl})`;
+        }
+        
+        let description = event.description || '';
+        
+        // Convert HTML tags to Discord-friendly format
+        description = description
+          .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> tags to newlines
+          .replace(/<a\s+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi, '[$2]($1)')  // Convert <a> tags to Discord links
+          .replace(/<[^>]+>/g, '')  // Remove any remaining HTML tags
+          .trim();
+        
+        description = description.length > 500 ? description.substring(0, 500) + '...' : description;
 
+        const eventEmoji = index % 2 === 0 ? '⚪' : '⚫';
+        
         embed.addFields({
-          name: `${index + 1}. ${event.summary || 'Événement sans titre'}`,
+          name: `${eventEmoji} ${event.summary || 'Événement'}`,
           value: [
             timeInfo,
             location,
-            description ? `📝 ${description}` : '',
-            event.htmlLink ? `🔗 [Voir dans le calendrier](${event.htmlLink})` : ''
+            description ? `💬 ${description}` : ''
           ].filter(Boolean).join('\n'),
           inline: false
         });
@@ -154,11 +177,10 @@ export const jeudi: Command = {
       console.error('Error fetching calendar events:', error);
       
       const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Erreur Jeudi')
-        .setDescription('Impossible de récupérer les événements du calendrier. Veuillez vérifier votre configuration Google Calendar.')
-        .setColor(0xFF0000)
-        .setTimestamp()
-        .setFooter({ text: 'Google Calendar API' });
+        .setTitle('😅 Oups !')
+        .setDescription('Je n\'arrive pas à récupérer votre agenda pour le moment. Réessayez plus tard !')
+        .setColor(0xE74C3C)
+        .setTimestamp();
 
       if (error instanceof Error) {
         // Translate common error messages to French

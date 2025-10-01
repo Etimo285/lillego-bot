@@ -36,7 +36,7 @@ function generateWeekOptions() {
     const endDay = weekEnd.getDate();
     const endMonth = monthNames[weekEnd.getMonth()];
     
-    const weekLabel = `Du Lundi ${startDay} ${startMonth} au Dimanche ${endDay} ${endMonth}`;
+    const weekLabel = `Semaine du ${startDay} ${startMonth}`;
     const weekValue = `${weekStart.toISOString().split('T')[0]}_${weekEnd.toISOString().split('T')[0]}`;
     
     let description = '';
@@ -204,9 +204,22 @@ export const agenda: Command = {
           }
         }
 
-        const location = event.location ? `📍 ${event.location}` : '';
-        const description = event.description ? 
-          event.description.substring(0, 100) + (event.description.length > 100 ? '...' : '') : '';
+        let location = '';
+        if (event.location) {
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
+          location = `📍 ${event.location} | [🗺️ Voir sur Google Maps](${mapsUrl})`;
+        }
+        
+        let description = event.description || '';
+        
+        // Convert HTML tags to Discord-friendly format
+        description = description
+          .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> tags to newlines
+          .replace(/<a\s+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi, '[$2]($1)')  // Convert <a> tags to Discord links
+          .replace(/<[^>]+>/g, '')  // Remove any remaining HTML tags
+          .trim();
+        
+        description = description.length > 100 ? description.substring(0, 100) + '...' : description;
 
         embed.addFields({
           name: `${index + 1}. ${event.summary || 'Événement sans titre'}`,
