@@ -47,16 +47,40 @@ export const agenda: Command = {
       // Initialize Google Calendar API
       let auth;
       
+      // Debug: Log current working directory and check for files
+      console.log('Current working directory:', process.cwd());
+      console.log('Environment variables check:');
+      console.log('- GOOGLE_CLIENT_EMAIL:', botConfig.googleClientEmail ? 'SET' : 'NOT SET');
+      console.log('- GOOGLE_PRIVATE_KEY:', botConfig.googlePrivateKey ? 'SET' : 'NOT SET');
+      
       // Check if service account JSON file exists (preferred method)
       const serviceAccountPath = join(process.cwd(), 'service-account.json');
+      console.log('Looking for service account file at:', serviceAccountPath);
+      console.log('Service account file exists:', existsSync(serviceAccountPath));
+      
       if (existsSync(serviceAccountPath)) {
         console.log('Using service account JSON file for authentication');
-        auth = new google.auth.GoogleAuth({
-          keyFile: serviceAccountPath,
-          scopes: ['https://www.googleapis.com/auth/calendar.readonly']
-        });
+        
+        // Read and validate the service account file
+        const fs = require('fs');
+        const serviceAccountData = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+        
+        console.log('Service account file type:', serviceAccountData.type || 'unknown');
+        console.log('Service account file keys:', Object.keys(serviceAccountData));
+        
+        if (serviceAccountData.type === 'service_account') {
+          auth = new google.auth.GoogleAuth({
+            keyFile: serviceAccountPath,
+            scopes: ['https://www.googleapis.com/auth/calendar.readonly']
+          });
+        } else {
+          throw new Error(`Invalid service account file. Expected 'service_account' type, but found: ${serviceAccountData.type || 'web'}. Please download the correct service account JSON file from Google Cloud Console.`);
+        }
       } else if (botConfig.googleClientEmail && botConfig.googlePrivateKey) {
         console.log('Using environment variables for authentication');
+        console.log('Client email:', botConfig.googleClientEmail);
+        console.log('Private key length:', botConfig.googlePrivateKey.length);
+        
         // Create a complete service account credentials object
         const serviceAccountCredentials = {
           type: 'service_account',
@@ -76,7 +100,16 @@ export const agenda: Command = {
           credentials: serviceAccountCredentials
         });
       } else {
-        throw new Error('Google Calendar API credentials not configured. Please either:\n1. Set GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY environment variables, or\n2. Place a service-account.json file in your project root');
+        const errorMsg = `Google Calendar API credentials not configured. Please either:
+1. Set GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY environment variables, or
+2. Place a service-account.json file in your project root
+
+Current status:
+- Service account file exists: ${existsSync(serviceAccountPath)}
+- GOOGLE_CLIENT_EMAIL: ${botConfig.googleClientEmail ? 'SET' : 'NOT SET'}
+- GOOGLE_PRIVATE_KEY: ${botConfig.googlePrivateKey ? 'SET' : 'NOT SET'}`;
+        
+        throw new Error(errorMsg);
       }
 
       const calendar = google.calendar({ version: 'v3', auth });
