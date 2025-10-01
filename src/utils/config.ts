@@ -12,6 +12,8 @@ export const botConfig: Config = {
   prefix: process.env.PREFIX || '!'
 };
 
+console.log(botConfig);
+
 // Validate required environment variables
 export function validateConfig(): void {
   const requiredVars = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];

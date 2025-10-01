@@ -1,5 +1,5 @@
 import { REST, Routes } from 'discord.js';
-import { readdirSync } from 'fs';
+import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { botConfig, validateConfig } from './utils/config';
 import { Command } from './types';
@@ -9,12 +9,21 @@ async function deployCommands(): Promise<void> {
     validateConfig();
     
     const commands: any[] = [];
-    const commandsPath = join(__dirname, 'commands');
+    
+    // Try to find commands in dist folder first, then fall back to src
+    let commandsPath = join(__dirname, '../dist/commands');
+    if (!existsSync(commandsPath)) {
+      commandsPath = join(__dirname, '../src/commands');
+    }
+    
+    console.log(`📁 Looking for commands in: ${commandsPath}`);
     
     // Load all commands
     const commandFiles = readdirSync(commandsPath).filter(file => 
-      file.endsWith('.js') && !file.endsWith('.d.ts')
+      (file.endsWith('.js') || file.endsWith('.ts')) && !file.endsWith('.d.ts')
     );
+    
+    console.log(`📋 Found ${commandFiles.length} command files:`, commandFiles);
     
     for (const file of commandFiles) {
       const filePath = join(commandsPath, file);
