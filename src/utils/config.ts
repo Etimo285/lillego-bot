@@ -9,7 +9,10 @@ export const botConfig: Config = {
   clientId: process.env.CLIENT_ID || '',
   guildId: process.env.GUILD_ID || '',
   devGuildId: process.env.DEV_GUILD_ID || '',
-  prefix: process.env.PREFIX || '!'
+  prefix: process.env.PREFIX || '!',
+  googleClientEmail: process.env.GOOGLE_CLIENT_EMAIL,
+  googlePrivateKey: process.env.GOOGLE_PRIVATE_KEY,
+  googleCalendarId: process.env.GOOGLE_CALENDAR_ID,
 };
 
 console.log(botConfig);
