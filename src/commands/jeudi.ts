@@ -5,82 +5,10 @@ import { botConfig } from '../utils/config';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-// Function to generate week options
-function generateWeekOptions() {
-  const now = new Date();
-  const options = [];
-  
-  // French day names
-  const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-  const monthNames = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ];
-  
-  // Get Monday of current week
-  const currentMonday = new Date(now);
-  const dayOfWeek = now.getDay();
-  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, Monday = 1
-  currentMonday.setDate(now.getDate() + daysToMonday);
-  
-  // Generate 5 weeks (current + next 4)
-  for (let weekOffset = 0; weekOffset < 5; weekOffset++) {
-    const weekStart = new Date(currentMonday);
-    weekStart.setDate(currentMonday.getDate() + (weekOffset * 7));
-    
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    
-    const startDay = weekStart.getDate();
-    const startMonth = monthNames[weekStart.getMonth()];
-    const endDay = weekEnd.getDate();
-    const endMonth = monthNames[weekEnd.getMonth()];
-    
-    const weekLabel = `Du Lundi ${startDay} ${startMonth} au Dimanche ${endDay} ${endMonth}`;
-    const weekValue = `${weekStart.toISOString().split('T')[0]}_${weekEnd.toISOString().split('T')[0]}`;
-    
-    let description = '';
-    if (weekOffset === 0) {
-      description = 'Semaine actuelle';
-    } else if (weekOffset === 1) {
-      description = 'Semaine prochaine';
-    } else {
-      description = `Dans ${weekOffset} semaines`;
-    }
-    
-    options.push({
-      name: weekLabel,
-      value: weekValue,
-      description: description
-    });
-  }
-  
-  return options;
-}
-
-export const agenda: Command = {
-  data: (() => {
-    const builder = new SlashCommandBuilder()
-      .setName('agenda')
-      .setDescription('Récupère les événements à venir depuis Google Calendar');
-    
-    // Generate week options dynamically
-    const weekOptions = generateWeekOptions();
-    const choices = weekOptions.map(option => ({
-      name: option.name,
-      value: option.value
-    }));
-    
-    builder.addStringOption(option =>
-      option
-        .setName('semaine')
-        .setDescription('Choisissez la semaine à afficher')
-        .setRequired(false)
-        .addChoices(...choices)
-    );
-    
-    return builder as SlashCommandBuilder;
-  })(),
+export const jeudi: Command = {
+  data: new SlashCommandBuilder()
+    .setName('jeudi')
+    .setDescription('Affiche les événements du prochain jeudi'),
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply();
@@ -88,30 +16,24 @@ export const agenda: Command = {
     try {
       // Get command options
       const calendarId = botConfig.googleCalendarId;
-      const selectedWeek = interaction.options.getString('semaine');
       
-      let timeMin: string;
-      let timeMax: string;
+      // Calculate next Thursday
+      const now = new Date();
+      const nextThursday = new Date(now);
+      const dayOfWeek = now.getDay();
       
-      if (selectedWeek) {
-        // Parse the selected week (format: "YYYY-MM-DD_YYYY-MM-DD")
-        const [startDate, endDate] = selectedWeek.split('_');
-        timeMin = `${startDate}T00:00:00.000Z`;
-        timeMax = `${endDate}T23:59:59.999Z`;
+      // Thursday is day 4 (0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, etc.)
+      const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
+      if (daysUntilThursday === 0 && now.getHours() >= 23) {
+        // If it's Thursday but late in the day, get next Thursday
+        nextThursday.setDate(now.getDate() + 7);
       } else {
-        // Default to current week if no week selected
-        const now = new Date();
-        const currentMonday = new Date(now);
-        const dayOfWeek = now.getDay();
-        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        currentMonday.setDate(now.getDate() + daysToMonday);
-        
-        const weekEnd = new Date(currentMonday);
-        weekEnd.setDate(currentMonday.getDate() + 6);
-        
-        timeMin = `${currentMonday.toISOString().split('T')[0]}T00:00:00.000Z`;
-        timeMax = `${weekEnd.toISOString().split('T')[0]}T23:59:59.999Z`;
+        nextThursday.setDate(now.getDate() + daysUntilThursday);
       }
+      
+      // Set time range for the entire day
+      const timeMin = `${nextThursday.toISOString().split('T')[0]}T00:00:00.000Z`;
+      const timeMax = `${nextThursday.toISOString().split('T')[0]}T23:59:59.999Z`;
 
       // Initialize Google Calendar API
       let auth;
@@ -168,10 +90,17 @@ export const agenda: Command = {
 
       const events = response.data.items || [];
 
+      // Format the date for display
+      const monthNames = [
+        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+      ];
+      const displayDate = `${nextThursday.getDate()} ${monthNames[nextThursday.getMonth()]}`;
+
       if (events.length === 0) {
         const embed = new EmbedBuilder()
-          .setTitle('📅 Agenda - Aucun événement trouvé')
-          .setDescription('Aucun événement à venir trouvé dans la période spécifiée.')
+          .setTitle(`📅 Jeudi ${displayDate} - Aucun événement`)
+          .setDescription('Aucun événement prévu pour ce jeudi.')
           .setColor(0xFFA500)
           .setTimestamp()
           .setFooter({ text: 'Google Calendar API' });
@@ -182,7 +111,7 @@ export const agenda: Command = {
 
       // Create embed with events
       const embed = new EmbedBuilder()
-        .setTitle(`📅 Agenda - Événements à venir (${events.length})`)
+        .setTitle(`📅 Jeudi ${displayDate} - ${events.length} événement${events.length > 1 ? 's' : ''}`)
         .setColor(0x4285F4)
         .setTimestamp()
         .setFooter({ text: 'Google Calendar API' });
@@ -190,17 +119,16 @@ export const agenda: Command = {
       // Add events to embed
       events.forEach((event, index) => {
         const start = event.start?.dateTime || event.start?.date;
-        const end = event.end?.dateTime || event.end?.date;
         
         let timeInfo = '';
         if (start) {
           const startDate = new Date(start);
           if (event.start?.dateTime) {
             // Event with time
-            timeInfo = `📅 **${startDate.toLocaleDateString('fr-FR')}** à **${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}**`;
+            timeInfo = `🕐 **${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}**`;
           } else {
             // All-day event
-            timeInfo = `📅 **${startDate.toLocaleDateString('fr-FR')}** (Toute la journée)`;
+            timeInfo = `📅 **Toute la journée**`;
           }
         }
 
@@ -226,7 +154,7 @@ export const agenda: Command = {
       console.error('Error fetching calendar events:', error);
       
       const errorEmbed = new EmbedBuilder()
-        .setTitle('❌ Erreur Agenda')
+        .setTitle('❌ Erreur Jeudi')
         .setDescription('Impossible de récupérer les événements du calendrier. Veuillez vérifier votre configuration Google Calendar.')
         .setColor(0xFF0000)
         .setTimestamp()
@@ -254,4 +182,3 @@ export const agenda: Command = {
     }
   }
 };
-
