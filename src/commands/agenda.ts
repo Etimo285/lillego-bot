@@ -207,7 +207,7 @@ export const agenda: Command = {
         let location = '';
         if (event.location) {
           const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
-          location = `📍 ${event.location} | [🗺️ Voir sur Google Maps](${mapsUrl})`;
+          location = `📍 ${event.location} | [🗺️ Itinéraire](${mapsUrl})`;
         }
         
         let description = event.description || '';
@@ -219,7 +219,7 @@ export const agenda: Command = {
           .replace(/<[^>]+>/g, '')  // Remove any remaining HTML tags
           .trim();
         
-        description = description.length > 100 ? description.substring(0, 100) + '...' : description;
+        description = description.length > 300 ? description.substring(0, 300) + '...' : description;
 
         embed.addFields({
           name: `${index + 1}. ${event.summary || 'Événement sans titre'}`,
@@ -227,7 +227,7 @@ export const agenda: Command = {
             timeInfo,
             location,
             description ? `📝 ${description}` : '',
-            event.htmlLink ? `🔗 [Voir dans le calendrier](${event.htmlLink})` : ''
+            '\n'
           ].filter(Boolean).join('\n'),
           inline: false
         });
