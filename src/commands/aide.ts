@@ -3,16 +3,16 @@ import { Command, ExtendedClient } from '../types';
 
 export const help: Command = {
   data: new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('List all available commands'),
+    .setName('aide')
+    .setDescription('Liste tous les commandes disponibles'),
   
   async execute(interaction: ChatInputCommandInteraction) {
     const client = interaction.client as ExtendedClient;
     
     // Create embed for help command
     const embed = new EmbedBuilder()
-      .setTitle('🤖 Lillego Bot - Available Commands')
-      .setDescription('Here are all the commands you can use:')
+      .setTitle('🤖 Lillego Bot - Commandes disponibles')
+      .setDescription('Voici toutes les commandes que vous pouvez utiliser:')
       .setColor(0x0099FF)
       .setTimestamp()
       .setFooter({ text: 'Lillego Bot' });
@@ -22,8 +22,8 @@ export const help: Command = {
     
     if (commands.size === 0) {
       embed.addFields({
-        name: '⚠️ No Commands Found',
-        value: 'There are currently no commands available.',
+        name: '⚠️ Aucune commande trouvée',
+        value: 'Il n\'y a actuellement aucune commande disponible.',
         inline: false
       });
     } else {
@@ -61,8 +61,8 @@ export const help: Command = {
 
     // Add usage information
     embed.addFields({
-      name: '💡 How to Use',
-      value: 'Type `/` in the chat to see all available slash commands, or use `/help` to see this list anytime!',
+      name: '💡 Comment utiliser',
+      value: 'Tapez `/` dans le chat pour voir toutes les commandes disponibles, ou utilisez `/aide` pour voir cette liste à tout moment!',
       inline: false
     });
 

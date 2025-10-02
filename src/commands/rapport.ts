@@ -1,8 +1,30 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import puppeteer from 'puppeteer';
 import { Command } from '../types';
+import path from 'path';
+import { setTimeout } from 'timers/promises';
 
 
+
+// Mapping object to convert period values to human-readable names
+const periodNames: Record<string, string> = {
+  'TODAY': 'Aujourd\'hui',
+  'YESTERDAY': 'Hier',
+  'THIS_WEEK': 'Cette semaine',
+  'LAST_WEEK': 'Semaine dernière',
+  'LAST_SEVEN': '7 derniers jours',
+  'LAST_THIRTY': '30 derniers jours',
+  'LAST_SIXTY': '60 derniers jours',
+  'LAST_NINETY': '90 derniers jours',
+  'THIS_MONTH': 'Ce mois-ci',
+  'LAST_MONTH': 'Dernier mois',
+  'LAST_THREE_MONTHS': '3 derniers mois',
+  'LAST_SIX_MONTHS': '6 derniers mois',
+  'LAST_TWELVE_MONTHS': '12 derniers mois',
+  'THIS_YEAR': 'Cette année',
+  'LAST_YEAR': 'Année dernière',
+  'ALL_TIME': 'Depuis le début'
+};
 
 export const rapport: Command = {
   data: (() => {
@@ -43,8 +65,18 @@ export const rapport: Command = {
     const selectedPeriod = interaction.options.getString('période');
     
     try {
-      const browser = await puppeteer.launch();
+      const browser = await puppeteer.launch(
+        {
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        }
+      );
       const page = await browser.newPage();
+      const client = await page.createCDPSession()
+      await client.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath: '../../downloads/',
+      })
       await page.goto(process.env.WORDPRESS_URL || '');
 
       // Login to WordPress
@@ -65,17 +97,30 @@ export const rapport: Command = {
       await page.click(`[data-relative-range-id="${selectedPeriod}"]`);
       await page.click(`#apply-date`);
       
+      await setTimeout(3000);
+
       // Wait for the page to update with the new period
-      await page.waitForSelector('#download-options', { visible: true });
+      await page.waitForSelector('#download-options');
       await page.click('#download-options');
 
+      await setTimeout(3000);
+
       // Click on download PDF button
-      // await page.waitForSelector('#download-pdf');
-      // await page.click('#download-pdf');
+      if (await page.waitForSelector('#download-pdf')) {
+        await interaction.editReply(`Periode: **${periodNames[selectedPeriod!]}** \nDownload PDF button reached ✅`);
+        // await page.click('#download-pdf');
+      } else {
+        await interaction.editReply('Erreur lors de la génération du rapport. Veuillez réessayer.');
+        return;
+      }
+
+      await setTimeout(2000);
       
       await browser.close();
-      
-      await interaction.editReply(`Rapport généré pour la période: ${selectedPeriod}`);
+
+      // await interaction.editReply({ files: [path.join(__dirname, '../../downloads/pages.pdf')] });
+
+      // await interaction.editReply(`Rapport généré pour la période: ${periodNames[selectedPeriod!]}`);
       
     } catch (error) {
       console.error('Error generating report:', error);
