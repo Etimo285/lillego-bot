@@ -1,9 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { Command } from '../types';
-import { google } from 'googleapis';
-import { botConfig } from '../utils/config';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { GoogleCalendarService, CalendarEvent, formatEventDescription, getAgendaTimeInfo, getAgendaLocationInfo } from '../utils/calendarService';
 
 // Function to generate week options
 function generateWeekOptions() {
@@ -36,7 +33,11 @@ function generateWeekOptions() {
     const endDay = weekEnd.getDate();
     const endMonth = monthNames[weekEnd.getMonth()];
     
-    const weekLabel = `Semaine du ${startDay} ${startMonth}`;
+    const weekLabel = weekOffset === 0 
+      ? `Semaine du ${startDay} ${startMonth} (actuelle)`
+      : weekOffset === 1 
+        ? `Semaine du ${startDay} ${startMonth} (prochaine)`
+        : `Semaine du ${startDay} ${startMonth}`;
     const weekValue = `${weekStart.toISOString().split('T')[0]}_${weekEnd.toISOString().split('T')[0]}`;
     
     let description = '';
@@ -86,8 +87,7 @@ export const agenda: Command = {
     await interaction.deferReply();
 
     try {
-      // Get command options
-      const calendarId = botConfig.googleCalendarId;
+      const calendarService = new GoogleCalendarService();
       const selectedWeek = interaction.options.getString('semaine');
       
       let timeMin: string;
@@ -113,60 +113,7 @@ export const agenda: Command = {
         timeMax = `${weekEnd.toISOString().split('T')[0]}T23:59:59.999Z`;
       }
 
-      // Initialize Google Calendar API
-      let auth;
-      
-      // Check if service account JSON file exists (preferred method)
-      const serviceAccountPath = join(process.cwd(), 'service-account.json');
-      
-      if (existsSync(serviceAccountPath)) {
-        // Read and validate the service account file
-        const fs = require('fs');
-        const serviceAccountData = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-        
-        if (serviceAccountData.type === 'service_account') {
-          auth = new google.auth.GoogleAuth({
-            keyFile: serviceAccountPath,
-            scopes: ['https://www.googleapis.com/auth/calendar.readonly']
-          });
-        } else {
-          throw new Error('Fichier de compte de service invalide. Veuillez télécharger le bon fichier JSON depuis Google Cloud Console.');
-        }
-      } else if (botConfig.googleClientEmail && botConfig.googlePrivateKey) {
-        // Create a complete service account credentials object
-        const serviceAccountCredentials = {
-          type: 'service_account',
-          project_id: 'lillego-bot',
-          private_key_id: 'temp-key-id',
-          private_key: botConfig.googlePrivateKey.replace(/\\n/g, '\n'),
-          client_email: botConfig.googleClientEmail,
-          client_id: 'temp-client-id',
-          auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-          token_uri: 'https://oauth2.googleapis.com/token',
-          auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-          client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(botConfig.googleClientEmail)}`
-        };
-
-        auth = new google.auth.GoogleAuth({
-          scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
-          credentials: serviceAccountCredentials
-        });
-      } else {
-        throw new Error('Configuration de l\'API Google Calendar manquante. Veuillez configurer les identifiants.');
-      }
-
-      const calendar = google.calendar({ version: 'v3', auth });
-
-      // Fetch events from Google Calendar
-      const response = await calendar.events.list({
-        calendarId: calendarId,
-        timeMin: timeMin,
-        timeMax: timeMax,
-        singleEvents: true,
-        orderBy: 'startTime',
-      });
-
-      const events = response.data.items || [];
+      const events = await calendarService.getEvents(timeMin, timeMax);
 
       if (events.length === 0) {
         const embed = new EmbedBuilder()
@@ -189,40 +136,15 @@ export const agenda: Command = {
 
       // Add events to embed
       events.forEach((event, index) => {
-        const start = event.start?.dateTime || event.start?.date;
-        const end = event.end?.dateTime || event.end?.date;
-        
-        let timeInfo = '';
-        if (start) {
-          const startDate = new Date(start);
-          if (event.start?.dateTime) {
-            // Event with time
-            timeInfo = `📅 **${startDate.toLocaleDateString('fr-FR')}** à **${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}**`;
-          } else {
-            // All-day event
-            timeInfo = `📅 **${startDate.toLocaleDateString('fr-FR')}** (Toute la journée)`;
-          }
-        }
-
-        let location = '';
-        if (event.location) {
-          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
-          location = `📍 ${event.location} | [🗺️ Itinéraire](${mapsUrl})`;
-        }
+        const timeInfo = getAgendaTimeInfo(event);
+        const location = getAgendaLocationInfo(event);
         
         let description = event.description || '';
-        
-        // Convert HTML tags to Discord-friendly format
-        description = description
-          .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> tags to newlines
-          .replace(/<a\s+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi, '[$2]($1)')  // Convert <a> tags to Discord links
-          .replace(/<[^>]+>/g, '')  // Remove any remaining HTML tags
-          .trim();
-        
+        description = formatEventDescription(description);
         description = description.length > 300 ? description.substring(0, 300) + '...' : description;
 
         embed.addFields({
-          name: `${index + 1}. ${event.summary || 'Événement sans titre'}`,
+          name: `${event.summary || 'Événement sans titre'}`,
           value: [
             timeInfo,
             location,
