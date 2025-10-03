@@ -144,12 +144,11 @@ export const agenda: Command = {
         description = description.length > 300 ? description.substring(0, 300) + '...' : description;
 
         embed.addFields({
-          name: `${event.summary || 'Événement sans titre'}`,
+          name: `🔸 ${event.summary || 'Événement sans titre'}`,
           value: [
             timeInfo,
             location,
-            description ? `📝 ${description}` : '',
-            '\n'
+            description ? `📝 ${description}` : ''
           ].filter(Boolean).join('\n'),
           inline: false
         });
