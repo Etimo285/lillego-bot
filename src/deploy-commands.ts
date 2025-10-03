@@ -20,21 +20,30 @@ async function deployCommands(): Promise<void> {
     
     // Load all commands
     const commandFiles = readdirSync(commandsPath).filter(file => 
-      (file.endsWith('.js') || file.endsWith('.ts')) && !file.endsWith('.d.ts')
+      (file.endsWith('.js') || file.endsWith('.ts')) && 
+      !file.endsWith('.d.ts') && 
+      !file.toLowerCase().includes('temp') &&
+      !file.toLowerCase().includes('tmp')
     );
     
     console.log(`📋 Found ${commandFiles.length} command files:`, commandFiles);
     
     for (const file of commandFiles) {
       const filePath = join(commandsPath, file);
-      const commandModule = await import(filePath);
       
-      // Get the command from the module (handle both default and named exports)
-      const command: Command = commandModule.default || commandModule[Object.keys(commandModule)[0]];
-      
-      if (command && 'data' in command && 'execute' in command) {
-        commands.push(command.data.toJSON());
-        console.log(`✅ Loaded command: ${command.data.name}`);
+      try {
+        // Use require instead of dynamic import to avoid ESM issues
+        const commandModule = require(filePath);
+        
+        // Get the command from the module (handle both default and named exports)
+        const command: Command = commandModule.default || commandModule[Object.keys(commandModule)[0]];
+        
+        if (command && 'data' in command && 'execute' in command) {
+          commands.push(command.data.toJSON());
+          console.log(`✅ Loaded command: ${command.data.name}`);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to load command from ${filePath}:`, error);
       }
     }
     

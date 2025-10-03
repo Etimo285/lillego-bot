@@ -107,10 +107,15 @@ export const jeudi: Command = {
       ];
       const displayDate = `${nextThursday.getDate()} ${monthNames[nextThursday.getMonth()]}`;
 
+      // Check if the target date is today
+      const today = new Date();
+      const isToday = nextThursday.toDateString() === today.toDateString();
+      const dayText = isToday ? 'aujourd\'hui' : 'ce jour-ci';
+
       if (events.length === 0) {
         const embed = new EmbedBuilder()
           .setTitle(`😴 Jeudi ${displayDate}`)
-          .setDescription('Rien de prévu aujourd\'hui ! 🌟')
+          .setDescription(`Rien de prévu ${dayText} ! 🌟`)
           .setColor(0x95A5A6)
           .setTimestamp();
 
@@ -121,7 +126,7 @@ export const jeudi: Command = {
       // Create embed with events
       const embed = new EmbedBuilder()
         .setTitle(`✨ Jeudi ${displayDate}`)
-        .setDescription(`Voici ce qui vous attend aujourd'hui !`)
+        .setDescription(`Voici ce qui vous attend ${dayText} !`)
         .setColor(0x3498DB)
         .setTimestamp();
 

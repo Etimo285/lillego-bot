@@ -7,7 +7,9 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "start": "tsc && node dist/index.js",
-    "deploy": "tsc && ts-node src/deploy-commands.ts"
+    "deploy": "tsc && node dist/deploy-commands.js",
+    "clear": "tsc && node dist/clear-commands.js",
+    "redeploy": "npm run clear && npm run deploy"
   },
   "keywords": ["discord", "bot", "typescript"],
   "author": "",
