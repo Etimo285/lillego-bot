@@ -117,7 +117,7 @@ export const agenda: Command = {
 
       if (events.length === 0) {
         const embed = new EmbedBuilder()
-          .setTitle('📅 Agenda - Aucun événement trouvé')
+          .setTitle('🥺 Agenda - Aucun événement trouvé 🥺')
           .setDescription('Aucun événement à venir trouvé dans la période spécifiée.')
           .setColor(0xFFA500)
           .setTimestamp()
@@ -127,9 +127,16 @@ export const agenda: Command = {
         return;
       }
 
+      // Resolve the week label for the embed title
+      const weekOptions = generateWeekOptions();
+      const selectedOption = selectedWeek
+        ? weekOptions.find(o => o.value === selectedWeek)
+        : weekOptions[0];
+      const weekLabel = selectedOption ? selectedOption.name : 'Semaine actuelle';
+
       // Create embed with events
       const embed = new EmbedBuilder()
-        .setTitle(`📅 Agenda - Événements à venir (${events.length})`)
+        .setTitle(`📅 Agenda - ${weekLabel} 📅`)
         .setColor(0x4285F4)
         .setTimestamp()
         .setFooter({ text: 'Google Calendar API' });
@@ -144,7 +151,7 @@ export const agenda: Command = {
         description = description.length > 300 ? description.substring(0, 300) + '...' : description;
 
         embed.addFields({
-          name: `🔸 ${event.summary || 'Événement sans titre'}`,
+          name: `📌 ${event.summary || 'Événement sans titre'}`,
           value: [
             timeInfo,
             location,

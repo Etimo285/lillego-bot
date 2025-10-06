@@ -10,8 +10,6 @@ export const botConfig: Config = {
   guildId: process.env.GUILD_ID || '',
   devGuildId: process.env.DEV_GUILD_ID || '',
   prefix: process.env.PREFIX || '!',
-  googleClientEmail: process.env.GOOGLE_CLIENT_EMAIL,
-  googlePrivateKey: process.env.GOOGLE_PRIVATE_KEY,
   googleCalendarId: process.env.GOOGLE_CALENDAR_ID,
 };
 
@@ -19,7 +17,7 @@ console.log(botConfig);
 
 // Validate required environment variables
 export function validateConfig(): void {
-  const requiredVars = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
+  const requiredVars = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID', 'GOOGLE_CALENDAR_ID'];
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {

@@ -10,7 +10,9 @@ export const jeudi: Command = {
   async execute(interaction: ChatInputCommandInteraction) {
     const handler = new DayCommandHandler({
       dayName: 'Jeudi',
-      dayNumber: 4 // Thursday
+      dayNumber: 4, // Thursday
+      thumbnailPath: undefined,
+      thumbnailName: undefined
     });
     
     await handler.execute(interaction);

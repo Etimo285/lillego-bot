@@ -47,19 +47,16 @@ export class GoogleCalendarService implements CalendarService {
       } else {
         throw new Error('Fichier de compte de service invalide. Veuillez télécharger le bon fichier JSON depuis Google Cloud Console.');
       }
-    } else if (botConfig.googleClientEmail && botConfig.googlePrivateKey) {
+    } else if (botConfig.googleCalendarId) {
       // Create a complete service account credentials object
       const serviceAccountCredentials = {
         type: 'service_account',
         project_id: 'lillego-bot',
         private_key_id: 'temp-key-id',
-        private_key: botConfig.googlePrivateKey.replace(/\\n/g, '\n'),
-        client_email: botConfig.googleClientEmail,
         client_id: 'temp-client-id',
         auth_uri: 'https://accounts.google.com/o/oauth2/auth',
         token_uri: 'https://oauth2.googleapis.com/token',
         auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-        client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(botConfig.googleClientEmail)}`
       };
 
       auth = new google.auth.GoogleAuth({
@@ -152,5 +149,5 @@ export function getAgendaLocationInfo(event: CalendarEvent): string {
   if (!event.location) return '';
   
   const mapsUrl = createMapsUrl(event.location);
-  return `📍 ${event.location} | [🗺️ Itinéraire](${mapsUrl})`;
+  return `📍 ${event.location} \n[🗺️ Itinéraire](${mapsUrl})`;
 }

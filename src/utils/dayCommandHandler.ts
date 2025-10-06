@@ -1,9 +1,12 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { basename } from 'path';
 import { GoogleCalendarService, CalendarEvent, getTimeInfo, getLocationInfo, formatEventDescription } from '../utils/calendarService';
 
 export interface DayCommandConfig {
   dayName: string;
   dayNumber: number; // 0=Sunday, 1=Monday, 2=Tuesday, etc.
+  thumbnailPath?: string; // local file path for embed thumbnail
+  thumbnailName?: string; // optional explicit filename for attachment
 }
 
 export class DayCommandHandler {
@@ -27,6 +30,12 @@ export class DayCommandHandler {
       const displayDate = this.formatDisplayDate(targetDate);
       const dayText = this.getDayText(targetDate);
 
+      // Prepare optional thumbnail attachment
+      const files = this.config.thumbnailPath
+        ? [{ attachment: this.config.thumbnailPath, name: this.config.thumbnailName || basename(this.config.thumbnailPath) }]
+        : undefined;
+      const thumbnailUrl = files ? `attachment://${files[0].name}` : undefined;
+
       if (events.length === 0) {
         const embed = new EmbedBuilder()
           .setTitle(`😴 ${this.config.dayName} ${displayDate}`)
@@ -34,7 +43,9 @@ export class DayCommandHandler {
           .setColor(0x95A5A6)
           .setTimestamp();
 
-        await interaction.editReply({ embeds: [embed] });
+        if (thumbnailUrl) embed.setThumbnail(thumbnailUrl);
+
+        await interaction.editReply({ embeds: [embed], files });
         return;
       }
 
@@ -44,8 +55,10 @@ export class DayCommandHandler {
         .setColor(0x3498DB)
         .setTimestamp();
 
+      if (thumbnailUrl) embed.setThumbnail(thumbnailUrl);
+
       this.addEventsToEmbed(embed, events);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed], files });
 
     } catch (error) {
       await this.handleError(interaction, error);
@@ -100,7 +113,8 @@ export class DayCommandHandler {
       description = formatEventDescription(description);
       description = description.length > 500 ? description.substring(0, 500) + '...' : description;
 
-      const eventEmoji = index % 2 === 0 ? '⚪' : '⚫';
+      // const eventEmoji = index % 2 === 0 ? '⚪' : '⚫';
+      const eventEmoji = '🔔';
       
       embed.addFields({
         name: `${eventEmoji} ${event.summary || 'Événement'}`,
