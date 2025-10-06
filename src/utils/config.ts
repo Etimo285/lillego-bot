@@ -9,7 +9,6 @@ export const botConfig: Config = {
   clientId: process.env.CLIENT_ID || '',
   guildId: process.env.GUILD_ID || '',
   devGuildId: process.env.DEV_GUILD_ID || '',
-  prefix: process.env.PREFIX || '!',
   googleCalendarId: process.env.GOOGLE_CALENDAR_ID,
 };
 

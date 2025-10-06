@@ -4,12 +4,13 @@
   "description": "A Discord bot built with TypeScript and Discord.js",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build:ts": "tsc",
     "watch": "tsc --watch",
-    "start": "tsc && node dist/index.js",
-    "deploy": "tsc && node dist/deploy-commands.js",
-    "clear": "tsc && node dist/clear-commands.js",
-    "redeploy": "npm run clear && npm run deploy"
+    "start": "node dist/index.js",
+    "deploy": "node dist/deploy-commands.js",
+    "clear": "node dist/clear-commands.js",
+    "redeploy": "npm run clear && npm run deploy",
+    "build:app": "npm install && npm run build:ts && npm run redeploy"
   },
   "keywords": ["discord", "bot", "typescript"],
   "author": "",

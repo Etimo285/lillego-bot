@@ -24,6 +24,5 @@ export interface Config {
   clientId: string;
   guildId: string;
   devGuildId: string;
-  prefix: string;
   googleCalendarId?: string;
 }
