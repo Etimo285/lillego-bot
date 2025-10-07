@@ -1,6 +1,7 @@
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { ExtendedClient, Command } from '../types';
+import { wrapCommandWithColdStartHandling } from './coldStartHandler';
 
 export async function loadCommands(client: ExtendedClient): Promise<void> {
   const commandsPath = join(__dirname, '../commands');
@@ -24,8 +25,10 @@ export async function loadCommands(client: ExtendedClient): Promise<void> {
         const command: Command = commandModule.default || commandModule[Object.keys(commandModule)[0]];
         
         if (command && 'data' in command && 'execute' in command) {
-          client.commands.set(command.data.name, command);
-          console.log(`✅ Loaded command: ${command.data.name}`);
+          // Wrap command with cold start handling
+          const wrappedCommand = wrapCommandWithColdStartHandling(command);
+          client.commands.set(wrappedCommand.data.name, wrappedCommand);
+          console.log(`✅ Loaded command with cold start handling: ${command.data.name}`);
         } else {
           console.log(`⚠️  The command at ${filePath} is missing a required "data" or "execute" property.`);
         }

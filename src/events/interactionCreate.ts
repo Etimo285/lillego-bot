@@ -14,6 +14,7 @@ export const interactionCreate: Event = {
       return;
     }
 
+    // Execute the command (cold start handling is built into the command wrapper)
     try {
       await command.execute(interaction);
     } catch (error) {
