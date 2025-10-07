@@ -2,6 +2,7 @@ import { createClient } from './client';
 import { loadEvents } from './utils/eventHandler';
 import { loadCommands } from './utils/commandHandler';
 import { botConfig, validateConfig } from './utils/config';
+import express, { Request, Response } from 'express';
 
 async function main(): Promise<void> {
   try {
@@ -19,6 +20,15 @@ async function main(): Promise<void> {
     await client.login(botConfig.token);
     
     console.log('🚀 Bot is starting up...');
+
+    // HTTP keep-alive server (useful for platforms like Render)
+    const app = express();
+    app.get('/', (_req: Request, res: Response) => res.send('OK'));
+    const PORT = process.env.PORT || '3000';
+    const portNumber = Number(PORT) || 3000;
+    app.listen(portNumber, '0.0.0.0', () => {
+      console.log(`HTTP server listening on ${portNumber}`);
+    });
   } catch (error) {
     console.error('Failed to start bot:', error);
     process.exit(1);
